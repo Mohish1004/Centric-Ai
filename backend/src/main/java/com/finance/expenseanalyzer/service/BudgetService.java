@@ -6,8 +6,10 @@ import com.finance.expenseanalyzer.model.User;
 import com.finance.expenseanalyzer.repository.BudgetRepository;
 import com.finance.expenseanalyzer.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -15,17 +17,23 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class BudgetService {
 
     private final BudgetRepository budgetRepository;
     private final UserRepository userRepository;
 
     private User getCurrentUser() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
+            throw new RuntimeException("No authenticated user found in context");
+        }
+        String email = authentication.getName();
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
     }
 
+    @Transactional(readOnly = true)
     public List<BudgetDto> getAllBudgets() {
         User user = getCurrentUser();
         return budgetRepository.findByUserIdOrderByMonthDesc(user.getId())
@@ -35,17 +43,21 @@ public class BudgetService {
     }
 
     public BudgetDto saveOrUpdateBudget(BudgetDto budgetDto) {
+        if (budgetDto == null || budgetDto.getMonth() == null || budgetDto.getMonth().trim().isEmpty()) {
+            throw new IllegalArgumentException("Budget month is required");
+        }
         User user = getCurrentUser();
+        Double limit = budgetDto.getMonthlyLimit() != null ? budgetDto.getMonthlyLimit() : 0.0;
         Optional<Budget> existing = budgetRepository.findByUserIdAndMonth(user.getId(), budgetDto.getMonth());
 
         Budget budget;
         if (existing.isPresent()) {
             budget = existing.get();
-            budget.setMonthlyLimit(budgetDto.getMonthlyLimit());
+            budget.setMonthlyLimit(limit);
         } else {
             budget = Budget.builder()
                     .user(user)
-                    .monthlyLimit(budgetDto.getMonthlyLimit())
+                    .monthlyLimit(limit)
                     .month(budgetDto.getMonth())
                     .build();
         }
@@ -53,7 +65,11 @@ public class BudgetService {
         return mapToDto(budgetRepository.save(budget));
     }
 
+    @Transactional(readOnly = true)
     public BudgetDto getBudgetForMonth(String month) {
+        if (month == null || month.trim().isEmpty()) {
+            throw new IllegalArgumentException("Month parameter cannot be empty");
+        }
         User user = getCurrentUser();
         return budgetRepository.findByUserIdAndMonth(user.getId(), month)
                 .map(this::mapToDto)

@@ -11,8 +11,10 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
@@ -21,6 +23,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class AiIntegrationService {
 
     private final RestTemplate restTemplate;
@@ -31,7 +34,11 @@ public class AiIntegrationService {
     private String aiServiceUrl;
 
     private User getCurrentUser() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
+            throw new RuntimeException("No authenticated user found in context");
+        }
+        String email = authentication.getName();
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
     }
@@ -41,25 +48,27 @@ public class AiIntegrationService {
         List<Expense> expenses = expenseRepository.findByUserIdOrderByDateDesc(user.getId());
 
         try {
-            // Attempt remote integration
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("expenses", expenses.stream().map(e -> {
-                Map<String, Object> map = new HashMap<>();
-                map.put("category", e.getCategory());
-                map.put("amount", e.getAmount());
-                map.put("date", e.getDate().toString());
-                return map;
-            }).collect(Collectors.toList()));
+            if (aiServiceUrl != null && !aiServiceUrl.trim().isEmpty()) {
+                // Attempt remote integration
+                Map<String, Object> payload = new HashMap<>();
+                payload.put("expenses", expenses.stream().map(e -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("category", e.getCategory() != null ? e.getCategory() : "Other");
+                    map.put("amount", e.getAmount() != null ? e.getAmount() : 0.0);
+                    map.put("date", e.getDate() != null ? e.getDate().toString() : LocalDate.now().toString());
+                    return map;
+                }).collect(Collectors.toList()));
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
 
-            ResponseEntity<AiInsightsResponse> response = restTemplate.postForEntity(
-                    aiServiceUrl + "/api/ai/insights", request, AiInsightsResponse.class);
+                ResponseEntity<AiInsightsResponse> response = restTemplate.postForEntity(
+                        aiServiceUrl + "/api/ai/insights", request, AiInsightsResponse.class);
 
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                return response.getBody();
+                if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                    return response.getBody();
+                }
             }
         } catch (Exception ex) {
             // Log fallback
@@ -74,22 +83,24 @@ public class AiIntegrationService {
         List<Expense> expenses = expenseRepository.findByUserIdOrderByDateDesc(user.getId());
 
         try {
-            Map<String, Object> payload = Collections.singletonMap("expenses", expenses.stream().map(e -> {
-                Map<String, Object> map = new HashMap<>();
-                map.put("amount", e.getAmount());
-                map.put("date", e.getDate().toString());
-                return map;
-            }).collect(Collectors.toList()));
+            if (aiServiceUrl != null && !aiServiceUrl.trim().isEmpty()) {
+                Map<String, Object> payload = Collections.singletonMap("expenses", expenses.stream().map(e -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("amount", e.getAmount() != null ? e.getAmount() : 0.0);
+                    map.put("date", e.getDate() != null ? e.getDate().toString() : LocalDate.now().toString());
+                    return map;
+                }).collect(Collectors.toList()));
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
 
-            ResponseEntity<AiPredictionResponse> response = restTemplate.postForEntity(
-                    aiServiceUrl + "/api/ai/predict", request, AiPredictionResponse.class);
+                ResponseEntity<AiPredictionResponse> response = restTemplate.postForEntity(
+                        aiServiceUrl + "/api/ai/predict", request, AiPredictionResponse.class);
 
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                return response.getBody();
+                if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                    return response.getBody();
+                }
             }
         } catch (Exception ex) {
             // Log fallback
@@ -100,19 +111,21 @@ public class AiIntegrationService {
 
     public OcrScanResponse scanReceipt(String base64Image, String fileName) {
         try {
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("image", base64Image);
-            payload.put("fileName", fileName);
+            if (aiServiceUrl != null && !aiServiceUrl.trim().isEmpty()) {
+                Map<String, Object> payload = new HashMap<>();
+                payload.put("image", base64Image);
+                payload.put("fileName", fileName);
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
 
-            ResponseEntity<OcrScanResponse> response = restTemplate.postForEntity(
-                    aiServiceUrl + "/api/ai/ocr", request, OcrScanResponse.class);
+                ResponseEntity<OcrScanResponse> response = restTemplate.postForEntity(
+                        aiServiceUrl + "/api/ai/ocr", request, OcrScanResponse.class);
 
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                return response.getBody();
+                if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                    return response.getBody();
+                }
             }
         } catch (Exception ex) {
             // Fallback simulated OCR scanner logic
@@ -140,10 +153,14 @@ public class AiIntegrationService {
         LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
         Map<String, Double> categoryTotals = new HashMap<>();
 
-        for (Expense e : expenses) {
-            if (!e.getDate().isBefore(startOfMonth)) {
-                totalThisMonth += e.getAmount();
-                categoryTotals.put(e.getCategory(), categoryTotals.getOrDefault(e.getCategory(), 0.0) + e.getAmount());
+        if (expenses != null) {
+            for (Expense e : expenses) {
+                if (e != null && e.getDate() != null && !e.getDate().isBefore(startOfMonth)) {
+                    double amt = e.getAmount() != null ? e.getAmount() : 0.0;
+                    totalThisMonth += amt;
+                    String cat = e.getCategory() != null ? e.getCategory() : "Other";
+                    categoryTotals.put(cat, categoryTotals.getOrDefault(cat, 0.0) + amt);
+                }
             }
         }
 
@@ -172,10 +189,13 @@ public class AiIntegrationService {
     }
 
     private AiPredictionResponse generateFallbackPrediction(List<Expense> expenses) {
-        double currentTotal = expenses.stream()
-                .filter(e -> !e.getDate().isBefore(LocalDate.now().withDayOfMonth(1)))
-                .mapToDouble(Expense::getAmount)
-                .sum();
+        double currentTotal = 0.0;
+        if (expenses != null) {
+            currentTotal = expenses.stream()
+                    .filter(e -> e != null && e.getDate() != null && !e.getDate().isBefore(LocalDate.now().withDayOfMonth(1)))
+                    .mapToDouble(e -> e.getAmount() != null ? e.getAmount() : 0.0)
+                    .sum();
+        }
 
         double nextMonthEstimate = currentTotal > 0 ? currentTotal * 1.05 : 12500.0;
         double forecastSavings = nextMonthEstimate * 0.25;

@@ -6,25 +6,34 @@ import com.finance.expenseanalyzer.model.User;
 import com.finance.expenseanalyzer.repository.IncomeRepository;
 import com.finance.expenseanalyzer.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class IncomeService {
 
     private final IncomeRepository incomeRepository;
     private final UserRepository userRepository;
 
     private User getCurrentUser() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
+            throw new RuntimeException("No authenticated user found in context");
+        }
+        String email = authentication.getName();
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
     }
 
+    @Transactional(readOnly = true)
     public List<IncomeDto> getAllIncome() {
         User user = getCurrentUser();
         return incomeRepository.findByUserIdOrderByDateDesc(user.getId())
@@ -34,12 +43,15 @@ public class IncomeService {
     }
 
     public IncomeDto createIncome(IncomeDto incomeDto) {
+        if (incomeDto == null) {
+            throw new IllegalArgumentException("Income data cannot be null");
+        }
         User user = getCurrentUser();
         Income income = Income.builder()
                 .user(user)
-                .source(incomeDto.getSource())
-                .amount(incomeDto.getAmount())
-                .date(incomeDto.getDate())
+                .source(incomeDto.getSource() != null ? incomeDto.getSource() : "Primary")
+                .amount(incomeDto.getAmount() != null ? incomeDto.getAmount() : 0.0)
+                .date(incomeDto.getDate() != null ? incomeDto.getDate() : LocalDate.now())
                 .build();
 
         return mapToDto(incomeRepository.save(income));
