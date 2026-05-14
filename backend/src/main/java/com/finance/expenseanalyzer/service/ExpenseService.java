@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -56,7 +57,7 @@ public class ExpenseService {
                 .receiptUrl(expenseDto.getReceiptUrl())
                 .build();
 
-        Expense saved = expenseRepository.save(expense);
+        Expense saved = expenseRepository.save(Objects.requireNonNull(expense));
         return mapToDto(saved);
     }
 
@@ -65,7 +66,7 @@ public class ExpenseService {
             throw new IllegalArgumentException("Expense data cannot be null");
         }
         User user = getCurrentUser();
-        Expense expense = expenseRepository.findById(id)
+        Expense expense = expenseRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new RuntimeException("Expense not found"));
 
         if (!expense.getUser().getId().equals(user.getId())) {
@@ -91,7 +92,7 @@ public class ExpenseService {
 
     public void deleteExpense(Long id) {
         User user = getCurrentUser();
-        Expense expense = expenseRepository.findById(id)
+        Expense expense = expenseRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new RuntimeException("Expense not found"));
 
         if (!expense.getUser().getId().equals(user.getId())) {

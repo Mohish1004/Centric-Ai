@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -62,7 +63,7 @@ public class BudgetService {
                     .build();
         }
 
-        return mapToDto(budgetRepository.save(budget));
+        return mapToDto(budgetRepository.save(Objects.requireNonNull(budget)));
     }
 
     @Transactional(readOnly = true)
