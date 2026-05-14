@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -54,12 +55,12 @@ public class IncomeService {
                 .date(incomeDto.getDate() != null ? incomeDto.getDate() : LocalDate.now())
                 .build();
 
-        return mapToDto(incomeRepository.save(income));
+        return mapToDto(incomeRepository.save(Objects.requireNonNull(income)));
     }
 
     public void deleteIncome(Long id) {
         User user = getCurrentUser();
-        Income income = incomeRepository.findById(id)
+        Income income = incomeRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new RuntimeException("Income not found"));
 
         if (!income.getUser().getId().equals(user.getId())) {
