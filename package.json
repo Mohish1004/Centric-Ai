@@ -1,8 +1,0 @@
-{
-  "name": "centric-ai-root",
-  "private": true,
-  "scripts": {
-    "prebuild": "npm --prefix frontend install --include=dev",
-    "build": "npm --prefix frontend run build"
-  }
-}
