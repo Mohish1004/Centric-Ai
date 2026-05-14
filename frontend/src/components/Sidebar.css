@@ -1,0 +1,224 @@
+.app-sidebar {
+  width: 280px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: 0;
+  border-left: none;
+  border-top: none;
+  border-bottom: none;
+  z-index: 40;
+  padding: 24px 20px;
+  background-color: hsl(var(--bg-surface));
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 32px;
+  padding: 0 8px;
+}
+
+.brand-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.brand-text h2 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.brand-text h2 span {
+  color: hsl(var(--primary));
+}
+
+.brand-tag {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: hsl(var(--text-muted));
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background-color: hsl(var(--bg-base));
+  border-radius: var(--radius-md);
+  border: 1px solid hsl(var(--border-color));
+  margin-bottom: 32px;
+}
+
+.user-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-full);
+  background-color: hsl(var(--primary-light));
+  color: hsl(var(--primary));
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.user-details {
+  overflow: hidden;
+}
+
+.user-details h4 {
+  font-size: 0.88rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  margin-bottom: 2px;
+}
+
+.user-email {
+  font-size: 0.75rem;
+  color: hsl(var(--text-muted));
+  display: block;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.nav-section-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: hsl(var(--text-muted));
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0 12px;
+  margin-bottom: 8px;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  color: hsl(var(--text-muted));
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.92rem;
+  transition: all 0.2s ease;
+}
+
+.nav-icon {
+  transition: transform 0.2s ease;
+}
+
+.nav-link:hover {
+  color: hsl(var(--text-main));
+  background-color: hsl(var(--bg-base));
+}
+
+.nav-link:hover .nav-icon {
+  transform: scale(1.1);
+  color: hsl(var(--primary));
+}
+
+.nav-link.active {
+  color: white;
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+.nav-link.active .nav-icon {
+  color: white;
+}
+
+.nav-badge {
+  margin-left: auto;
+  font-size: 0.65rem;
+  font-weight: 800;
+  background-color: white;
+  color: hsl(var(--accent));
+  padding: 2px 6px;
+  border-radius: 4px;
+  box-shadow: var(--shadow-sm);
+}
+
+[data-theme="dark"] .nav-badge {
+  background-color: hsl(var(--bg-base));
+  color: hsl(var(--primary));
+}
+
+.sidebar-footer {
+  padding-top: 16px;
+  border-top: 1px solid hsl(var(--border-color));
+}
+
+.btn-logout {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: transparent;
+  border: none;
+  color: hsl(var(--danger));
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+}
+
+.btn-logout:hover {
+  background-color: hsl(var(--danger-bg));
+}
+
+@media (max-width: 768px) {
+  .app-sidebar {
+    width: 76px;
+    padding: 20px 12px;
+  }
+  
+  .brand-text, .user-details, .nav-link span:not(.nav-badge), .nav-section-title, .btn-logout span {
+    display: none;
+  }
+
+  .nav-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    font-size: 0.5rem;
+    padding: 1px 3px;
+  }
+
+  .nav-link {
+    justify-content: center;
+    padding: 14px;
+    position: relative;
+  }
+
+  .btn-logout {
+    justify-content: center;
+    padding: 14px;
+  }
+}
